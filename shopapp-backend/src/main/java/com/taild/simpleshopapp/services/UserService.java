@@ -1,9 +1,10 @@
 package com.taild.simpleshopapp.services;
 
-import com.taild.simpleshopapp.dtos.UpdateUserDTO;
-import com.taild.simpleshopapp.dtos.UserDTO;
-import com.taild.simpleshopapp.dtos.UserLoginDTO;
+import com.taild.simpleshopapp.dtos.users.UpdateUserDTO;
+import com.taild.simpleshopapp.dtos.users.UserDTO;
+import com.taild.simpleshopapp.dtos.users.UserLoginDTO;
 import com.taild.simpleshopapp.exceptions.DataNotFoundException;
+import com.taild.simpleshopapp.exceptions.ExpiredTokenException;
 import com.taild.simpleshopapp.exceptions.InvalidPasswordException;
 import com.taild.simpleshopapp.exceptions.PermissionDenyException;
 import com.taild.simpleshopapp.models.Role;
@@ -24,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+
+import static com.taild.simpleshopapp.utils.ValidationUtils.isValidEmail;
 
 
 @RequiredArgsConstructor
@@ -105,106 +108,24 @@ public class UserService implements IUserService{
 
     @Override
     public String loginSocial(UserLoginDTO userLoginDTO) throws Exception {
-        Optional<User> optionalUser = Optional.empty();
-        Role roleUser = roleRepository.findByName(Role.USER)
-                .orElseThrow(() -> new DataNotFoundException(
-                        localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS)));
-
-        // Kiểm tra Google Account ID
-        if (userLoginDTO.isGoogleAccountIdValid()) {
-            optionalUser = userRepository.findByGoogleAccountId(userLoginDTO.getGoogleAccountId());
-
-            // Tạo người dùng mới nếu không tìm thấy
-            if (optionalUser.isEmpty()) {
-                User newUser = User.builder()
-                        .fullName(Optional.ofNullable(userLoginDTO.getFullname()).orElse(""))
-                        .email(Optional.ofNullable(userLoginDTO.getEmail()).orElse(""))
-                        .profileImage(Optional.ofNullable(userLoginDTO.getProfileImage()).orElse(""))
-                        .role(roleUser)
-                        .googleAccountId(userLoginDTO.getGoogleAccountId())
-                        .password("") // Mật khẩu trống cho đăng nhập mạng xã hội
-                        .active(true)
-                        .build();
-
-                // Lưu người dùng mới
-                newUser = userRepository.save(newUser);
-                optionalUser = Optional.of(newUser);
-            }
-        }
-        // Kiểm tra Facebook Account ID
-        else if (userLoginDTO.isFacebookAccountIdValid()) {
-            optionalUser = userRepository.findByFacebookAccountId(userLoginDTO.getFacebookAccountId());
-
-            // Tạo người dùng mới nếu không tìm thấy
-            if (optionalUser.isEmpty()) {
-                User newUser = User.builder()
-                        .fullName(Optional.ofNullable(userLoginDTO.getFullname()).orElse(""))
-                        .email(Optional.ofNullable(userLoginDTO.getEmail()).orElse(""))
-                        .profileImage(Optional.ofNullable(userLoginDTO.getProfileImage()).orElse(""))
-                        .role(roleUser)
-                        .facebookAccountId(userLoginDTO.getFacebookAccountId())
-                        .password("") // Mật khẩu trống cho đăng nhập mạng xã hội
-                        .active(true)
-                        .build();
-
-                // Lưu người dùng mới
-                newUser = userRepository.save(newUser);
-                optionalUser = Optional.of(newUser);
-            }
-        } else {
-            throw new IllegalArgumentException("Invalid social account information.");
-        }
-
-        User user = optionalUser.get();
-
-        // Kiểm tra nếu tài khoản bị khóa
-        if (!user.isActive()) {
-            throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.USER_IS_LOCKED));
-        }
-
-        // Tạo JWT token cho người dùng
-        return jwtTokenUtil.generateToken(user);
+        return null;
     }
 
     @Transactional
     @Override
     public User updateUser(Long userId, UpdateUserDTO updatedUserDTO) throws Exception {
-        // Find the existing user by userId
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new DataNotFoundException("User not found"));
-
-        // Check if the phone number is being changed and if it already exists for another user
-        /*
-        String newPhoneNumber = updatedUserDTO.getPhoneNumber();
-        if (!existingUser.getPhoneNumber().equals(newPhoneNumber) &&
-                userRepository.existsByPhoneNumber(newPhoneNumber)) {
-            throw new DataIntegrityViolationException("Phone number already exists");
-        }
-       */
-        // Update user information based on the DTO
         if (updatedUserDTO.getFullName() != null) {
             existingUser.setFullName(updatedUserDTO.getFullName());
         }
-        /*
-        if (newPhoneNumber != null) {
-            existingUser.setPhoneNumber(newPhoneNumber);
-        }
-        */
         if (updatedUserDTO.getAddress() != null) {
             existingUser.setAddress(updatedUserDTO.getAddress());
         }
         if (updatedUserDTO.getDateOfBirth() != null) {
             existingUser.setDateOfBirth(updatedUserDTO.getDateOfBirth());
         }
-        if (updatedUserDTO.isFacebookAccountIdValid()) {
-            existingUser.setFacebookAccountId(updatedUserDTO.getFacebookAccountId());
-        }
-        if (updatedUserDTO.isGoogleAccountIdValid()) {
-            existingUser.setGoogleAccountId(updatedUserDTO.getGoogleAccountId());
-        }
 
-
-        // Update the password if it is provided in the DTO
         if (updatedUserDTO.getPassword() != null
                 && !updatedUserDTO.getPassword().isEmpty()) {
             if(!updatedUserDTO.getPassword().equals(updatedUserDTO.getRetypePassword())) {
@@ -214,8 +135,7 @@ public class UserService implements IUserService{
             String encodedPassword = passwordEncoder.encode(newPassword);
             existingUser.setPassword(encodedPassword);
         }
-        //existingUser.setRole(updatedRole);
-        // Save the updated user
+
         return userRepository.save(existingUser);
     }
 

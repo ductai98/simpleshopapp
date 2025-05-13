@@ -1,24 +1,18 @@
 package com.taild.simpleshopapp.controller;
 
-import com.project.shopapp.components.LocalizationUtils;
-import com.project.shopapp.components.SecurityUtils;
-import com.project.shopapp.dtos.*;
-import com.project.shopapp.exceptions.DataNotFoundException;
-import com.project.shopapp.exceptions.InvalidPasswordException;
-import com.project.shopapp.models.Token;
-import com.project.shopapp.models.User;
-import com.project.shopapp.responses.ResponseObject;
-import com.project.shopapp.responses.user.LoginResponse;
-import com.project.shopapp.responses.user.UserListResponse;
-import com.project.shopapp.responses.user.UserResponse;
-import com.project.shopapp.services.auth.IAuthService;
-import com.project.shopapp.services.token.ITokenService;
-import com.project.shopapp.services.user.IUserService;
-import com.project.shopapp.utils.FileUtils;
-import com.project.shopapp.utils.MessageKeys;
-import com.project.shopapp.utils.ValidationUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import com.taild.simpleshopapp.component.SecurityUtils;
+import com.taild.simpleshopapp.dtos.ResponseDTO;
+import com.taild.simpleshopapp.dtos.users.*;
+import com.taild.simpleshopapp.exceptions.DataNotFoundException;
+import com.taild.simpleshopapp.exceptions.InvalidPasswordException;
+import com.taild.simpleshopapp.models.Token;
+import com.taild.simpleshopapp.models.User;
+import com.taild.simpleshopapp.services.IAuthService;
+import com.taild.simpleshopapp.services.ITokenService;
+import com.taild.simpleshopapp.services.IUserService;
+import com.taild.simpleshopapp.utils.FileUtils;
+import com.taild.simpleshopapp.utils.ValidationUtils;
+import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +23,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
@@ -39,26 +32,23 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("${api.prefix}/users")
 @RequiredArgsConstructor
-
 public class UserController {
     private final IUserService userService;
-    private final LocalizationUtils localizationUtils;
     private final ITokenService tokenService;
     private final IAuthService authService;
 
-    private final SecurityUtils securityUtils;    
+    private final SecurityUtils securityUtils;
 
     private String facebookClientSecret;
 
     @GetMapping("")
-    public ResponseEntity<ResponseObject> getAllUser(
+    public ResponseEntity<ResponseDTO> getAllUser(
             @RequestParam(defaultValue = "", required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit
@@ -66,29 +56,27 @@ public class UserController {
         // Tạo Pageable từ thông tin trang và giới hạn
         PageRequest pageRequest = PageRequest.of(
                 page, limit,
-                //Sort.by("createdAt").descending()
                 Sort.by("id").ascending()
         );
-        Page<UserResponse> userPage = userService.findAll(keyword, pageRequest)
-                .map(UserResponse::fromUser);
+        Page<UserResponseDTO> userPage = userService.findAll(keyword, pageRequest).map(UserResponseDTO::fromUser);
 
         // Lấy tổng số trang
         int totalPages = userPage.getTotalPages();
-        List<UserResponse> userResponses = userPage.getContent();
-        UserListResponse userListResponse = UserListResponse
+        List<UserResponseDTO> userResponses = userPage.getContent();
+        ListUserResponseDTO userListResponse = ListUserResponseDTO
                 .builder()
                 .users(userResponses)
                 .totalPages(totalPages)
                 .build();
-        return ResponseEntity.ok().body(ResponseObject.builder()
+        return ResponseEntity.ok().body(ResponseDTO.builder()
                         .message("Get user list successfully")
                         .status(HttpStatus.OK)
                         .data(userListResponse)
                 .build());
     }
+
     @PostMapping("/register")
-    //can we register an "admin" user ?
-    public ResponseEntity<ResponseObject> createUser(
+    public ResponseEntity<ResponseDTO> createUser(
             @Valid @RequestBody UserDTO userDTO,
             BindingResult result
     ) throws Exception {
@@ -98,7 +86,7 @@ public class UserController {
                     .map(FieldError::getDefaultMessage)
                     .toList();
 
-            return ResponseEntity.badRequest().body(ResponseObject.builder()
+            return ResponseEntity.badRequest().body(ResponseDTO.builder()
                     .status(HttpStatus.BAD_REQUEST)
                     .data(null)
                     .message(errorMessages.toString())
@@ -106,7 +94,7 @@ public class UserController {
         }
         if (userDTO.getEmail() == null || userDTO.getEmail().trim().isBlank()) {
             if (userDTO.getPhoneNumber() == null || userDTO.getPhoneNumber().isBlank()) {
-                return ResponseEntity.badRequest().body(ResponseObject.builder()
+                return ResponseEntity.badRequest().body(ResponseDTO.builder()
                         .status(HttpStatus.BAD_REQUEST)
                         .data(null)
                         .message("At least email or phone number is required")
@@ -125,23 +113,31 @@ public class UserController {
         }
 
         if (!userDTO.getPassword().equals(userDTO.getRetypePassword())) {
-            //registerResponse.setMessage();
-            return ResponseEntity.badRequest().body(ResponseObject.builder()
+            return ResponseEntity.badRequest().body(ResponseDTO.builder()
                     .status(HttpStatus.BAD_REQUEST)
                     .data(null)
-                    .message(localizationUtils.getLocalizedMessage(MessageKeys.PASSWORD_NOT_MATCH))
+                    .message("Passwords do not match")
                     .build());
         }
-        User user = userService.createUser(userDTO);
-        return ResponseEntity.ok(ResponseObject.builder()
-                .status(HttpStatus.CREATED)
-                .data(UserResponse.fromUser(user))
-                .message("Account registration successful")
-                .build());
+        try {
+            User user = userService.createUser(userDTO);
+            return ResponseEntity.ok(ResponseDTO.builder()
+                    .status(HttpStatus.CREATED)
+                    .data(UserResponseDTO.fromUser(user))
+                    .message("Account registration successful")
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.builder()
+                    .status(HttpStatus.BAD_REQUEST)
+                    .data(null)
+                    .message(e.getMessage())
+                    .build());
+        }
+
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseObject> login(
+    public ResponseEntity<ResponseDTO> login(
             @Valid @RequestBody UserLoginDTO userLoginDTO,
             HttpServletRequest request
     ) throws Exception {
@@ -154,8 +150,8 @@ public class UserController {
         Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));
 
         // Tạo đối tượng LoginResponse
-        LoginResponse loginResponse = LoginResponse.builder()
-                .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY))
+        LoginResponseDTO loginResponse = LoginResponseDTO.builder()
+                .message("Login successfully")
                 .token(jwtToken.getToken())
                 .tokenType(jwtToken.getTokenType())
                 .refreshToken(jwtToken.getRefreshToken())
@@ -164,42 +160,8 @@ public class UserController {
                 .id(userDetail.getId())
                 .build();
 
-        // Trả về phản hồi
         return ResponseEntity.ok().body(
-                ResponseObject.builder()
-                        .message("Login successfully")
-                        .data(loginResponse)
-                        .status(HttpStatus.OK)
-                        .build()
-        );
-    }
-    //@PostMapping("/login/social")
-    private ResponseEntity<ResponseObject> loginSocial(
-            @Valid @RequestBody UserLoginDTO userLoginDTO,
-            HttpServletRequest request
-    ) throws Exception {
-        // Gọi hàm loginSocial từ UserService cho đăng nhập mạng xã hội
-        String token = userService.loginSocial(userLoginDTO);
-
-        // Xử lý token và thông tin người dùng
-        String userAgent = request.getHeader("User-Agent");
-        User userDetail = userService.getUserDetailsFromToken(token);
-        Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));
-
-        // Tạo đối tượng LoginResponse
-        LoginResponse loginResponse = LoginResponse.builder()
-                .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY))
-                .token(jwtToken.getToken())
-                .tokenType(jwtToken.getTokenType())
-                .refreshToken(jwtToken.getRefreshToken())
-                .username(userDetail.getUsername())
-                .roles(userDetail.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
-                .id(userDetail.getId())
-                .build();
-
-        // Trả về phản hồi
-        return ResponseEntity.ok().body(
-                ResponseObject.builder()
+                ResponseDTO.builder()
                         .message("Login successfully")
                         .data(loginResponse)
                         .status(HttpStatus.OK)
@@ -212,25 +174,24 @@ public class UserController {
         // Ví dụ đơn giản:
         return userAgent.toLowerCase().contains("mobile");
     }
+
     @PostMapping("/details")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
-    public ResponseEntity<ResponseObject> getUserDetails(
+    public ResponseEntity<ResponseDTO> getUserDetails(
             @RequestHeader("Authorization") String authorizationHeader
     ) throws Exception {
         String extractedToken = authorizationHeader.substring(7); // Loại bỏ "Bearer " từ chuỗi token
         User user = userService.getUserDetailsFromToken(extractedToken);
         return ResponseEntity.ok().body(
-                ResponseObject.builder()
+                ResponseDTO.builder()
                         .message("Get user's detail successfully")
-                        .data(UserResponse.fromUser(user))
+                        .data(UserResponseDTO.fromUser(user))
                         .status(HttpStatus.OK)
                         .build()
         );
     }
+
     @PutMapping("/details/{userId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
-    @Operation(security = { @SecurityRequirement(name = "bearer-key") })
-    public ResponseEntity<ResponseObject> updateUserDetails(
+    public ResponseEntity<ResponseDTO> updateUserDetails(
             @PathVariable Long userId,
             @RequestBody UpdateUserDTO updatedUserDTO,
             @RequestHeader("Authorization") String authorizationHeader
@@ -238,52 +199,54 @@ public class UserController {
         String extractedToken = authorizationHeader.substring(7);
         User user = userService.getUserDetailsFromToken(extractedToken);
         // Ensure that the user making the request matches the user being updated
-        if (user.getId() != userId) {
+        if (!Objects.equals(user.getId(), userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         User updatedUser = userService.updateUser(userId, updatedUserDTO);
         return ResponseEntity.ok().body(
-                ResponseObject.builder()
+                ResponseDTO.builder()
                         .message("Update user detail successfully")
-                        .data(UserResponse.fromUser(updatedUser))
+                        .data(UserResponseDTO.fromUser(updatedUser))
                         .status(HttpStatus.OK)
                         .build()
         );
     }
+
+
     @PutMapping("/reset-password/{userId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ResponseObject> resetPassword(@Valid @PathVariable long userId){
+    public ResponseEntity<ResponseDTO> resetPassword(@Valid @PathVariable long userId){
         try {
             String newPassword = UUID.randomUUID().toString().substring(0, 5); // Tạo mật khẩu mới
             userService.resetPassword(userId, newPassword);
-            return ResponseEntity.ok(ResponseObject.builder()
+            return ResponseEntity.ok(ResponseDTO.builder()
                             .message("Reset password successfully")
                             .data(newPassword)
                             .status(HttpStatus.OK)
                     .build());
         } catch (InvalidPasswordException e) {
-            return ResponseEntity.ok(ResponseObject.builder()
+            return ResponseEntity.ok(ResponseDTO.builder()
                     .message("Invalid password")
                     .data("")
                     .status(HttpStatus.BAD_REQUEST)
                     .build());
         } catch (DataNotFoundException e) {
-            return ResponseEntity.ok(ResponseObject.builder()
+            return ResponseEntity.ok(ResponseDTO.builder()
                     .message("User not found")
                     .data("")
                     .status(HttpStatus.BAD_REQUEST)
                     .build());
         }
     }
+
+
     @PutMapping("/block/{userId}/{active}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ResponseObject> blockOrEnable(
+    public ResponseEntity<ResponseDTO> blockOrEnable(
             @Valid @PathVariable long userId,
             @Valid @PathVariable int active
     ) throws Exception {
         userService.blockOrEnable(userId, active > 0);
         String message = active > 0 ? "Successfully enabled the user." : "Successfully blocked the user.";
-        return ResponseEntity.ok().body(ResponseObject.builder()
+        return ResponseEntity.ok().body(ResponseDTO.builder()
                 .message(message)
                 .status(HttpStatus.OK)
                 .data(null)
@@ -291,14 +254,13 @@ public class UserController {
     }
 
     @PostMapping(value = "/upload-profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ResponseObject> uploadProfileImage(
+    public ResponseEntity<ResponseDTO> uploadProfileImage(
             @RequestParam("file") MultipartFile file
     ) throws Exception {
         User loginUser = securityUtils.getLoggedInUser();
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body(
-                    ResponseObject.builder()
+                    ResponseDTO.builder()
                             .message("Image file is required.")
                             .build()
             );
@@ -306,7 +268,7 @@ public class UserController {
 
         if (file.getSize() > 10 * 1024 * 1024) { // 10MB
             return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                    .body(ResponseObject.builder()
+                    .body(ResponseDTO.builder()
                             .message("Image file size exceeds the allowed limit of 10MB.")
                             .status(HttpStatus.PAYLOAD_TOO_LARGE)
                             .build());
@@ -315,7 +277,7 @@ public class UserController {
         // Check file type
         if (!FileUtils.isImageFile(file)) {
             return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                    .body(ResponseObject.builder()
+                    .body(ResponseDTO.builder()
                             .message("Uploaded file must be an image.")
                             .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
                             .build());
@@ -326,17 +288,19 @@ public class UserController {
         String imageName = FileUtils.storeFile(file);
 
         userService.changeProfileImage(loginUser.getId(), imageName);
-        // Delete old file if exists
+
         if (!StringUtils.isEmpty(oldFileName)) {
             FileUtils.deleteFile(oldFileName);
         }
-//1aba82e1-4599-4c8b-8ec5-9c16e5aad379_3734888057500.png
-        return ResponseEntity.ok().body(ResponseObject.builder()
+
+        return ResponseEntity.ok().body(ResponseDTO.builder()
                 .message("Upload profile image successfully")
                 .status(HttpStatus.CREATED)
                 .data(imageName) // Return the filename or image URL
                 .build());
     }
+
+
     @GetMapping("/profile-images/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
         try {
@@ -351,89 +315,9 @@ public class UserController {
                 return ResponseEntity.ok()
                         .contentType(MediaType.IMAGE_JPEG)
                         .body(new UrlResource(Paths.get("uploads/default-profile-image.jpeg").toUri()));
-                //return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
-    }
-
-
-    //Angular, bấm đăng nhập gg, redirect đến trang đăng nhập google, đăng nhập xong có "code"
-    //Từ "code" => google token => lấy ra các thông tin khác
-    @GetMapping("/auth/social-login")
-    public ResponseEntity<String> socialAuth(
-            @RequestParam("login_type") String loginType,
-            HttpServletRequest request
-    ){
-        //request.getRequestURI()
-        loginType = loginType.trim().toLowerCase();  // Loại bỏ dấu cách và chuyển thành chữ thường
-        String url = authService.generateAuthUrl(loginType);
-        return ResponseEntity.ok(url);
-    }
-
-    @GetMapping("/auth/social/callback")
-    public ResponseEntity<ResponseObject> callback(
-            @RequestParam("code") String code,
-            @RequestParam("login_type") String loginType,            
-            HttpServletRequest request
-            ) throws Exception {
-        // Call the AuthService to get user info
-        Map<String, Object> userInfo = authService.authenticateAndFetchProfile(code, loginType);
-
-        if (userInfo == null) {
-            return ResponseEntity.badRequest().body(new ResponseObject(
-                    "Failed to authenticate", HttpStatus.BAD_REQUEST, null
-            ));
-        }
-
-        // Extract user information from userInfo map
-        String accountId = "";
-        String name = "";
-        String picture = "";
-        String email = "";
-
-        if (loginType.trim().equals("google")) {
-            accountId = (String) Objects.requireNonNullElse(userInfo.get("sub"), "");
-            name = (String) Objects.requireNonNullElse(userInfo.get("name"), "");
-            picture = (String) Objects.requireNonNullElse(userInfo.get("picture"), "");
-            email = (String) Objects.requireNonNullElse(userInfo.get("email"), "");
-        } else if (loginType.trim().equals("facebook")) {
-            accountId = (String) Objects.requireNonNullElse(userInfo.get("id"), "");
-            name = (String) Objects.requireNonNullElse(userInfo.get("name"), "");
-            email = (String) Objects.requireNonNullElse(userInfo.get("email"), "");
-            // Lấy URL ảnh từ cấu trúc dữ liệu của Facebook
-            Object pictureObj = userInfo.get("picture");
-            if (pictureObj instanceof Map) {
-                Map<?, ?> pictureData = (Map<?, ?>) pictureObj;
-                Object dataObj = pictureData.get("data");
-                if (dataObj instanceof Map) {
-                    Map<?, ?> dataMap = (Map<?, ?>) dataObj;
-                    Object urlObj = dataMap.get("url");
-                    if (urlObj instanceof String) {
-                        picture = (String) urlObj;
-                    }
-                }
-            }
-        }
-
-    // Tạo đối tượng UserLoginDTO
-        UserLoginDTO userLoginDTO = UserLoginDTO.builder()
-                .email(email)
-                .fullname(name)
-                .password("")
-                .phoneNumber("")
-                .profileImage(picture)
-                .build();
-
-        if (loginType.trim().equals("google")) {
-            userLoginDTO.setGoogleAccountId(accountId);
-            //userLoginDTO.setFacebookAccountId("");
-        } else if (loginType.trim().equals("facebook")) {
-            userLoginDTO.setFacebookAccountId(accountId);
-            //userLoginDTO.setGoogleAccountId("");
-        }
-
-        return this.loginSocial(userLoginDTO, request);
     }
 }

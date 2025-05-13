@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.dtos;
+package com.taild.simpleshopapp.dtos.users;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Min;
@@ -13,6 +13,7 @@ import lombok.*;
 @Setter
 public class UserLoginDTO {
     @JsonProperty("phone_number")
+    @NotBlank(message = "Phone number cannot be blank")
     private String phoneNumber;
 
     @JsonProperty("email")
@@ -22,7 +23,6 @@ public class UserLoginDTO {
     @NotBlank(message = "Password cannot be blank")
     private String password;
 
-    @Min(value = 1, message = "You must enter role's Id")
     @JsonProperty("role_id")
     private Long roleId;
 

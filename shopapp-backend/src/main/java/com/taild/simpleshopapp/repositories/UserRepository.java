@@ -15,13 +15,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     Optional<User> findByPhoneNumber(String phoneNumber);
     Optional<User> findByEmail(String email);
-    //SELECT * FROM users WHERE phoneNumber=?
-    //query command
+
     @Query("SELECT o FROM User o WHERE o.active = true AND (:keyword IS NULL OR :keyword = '' OR " +
-            "o.fullName LIKE %:keyword% " +
-            "OR o.address LIKE %:keyword% " +
-            "OR o.phoneNumber LIKE %:keyword%) " +
-            "AND LOWER(o.role.name) = 'user'")
+            " o.fullName LIKE %:keyword% " +
+            " OR o.address LIKE %:keyword% " +
+            " OR o.phoneNumber LIKE %:keyword%) " +
+            " AND LOWER(o.role.name) = 'user'")
     Page<User> findAll(@Param("keyword") String keyword, Pageable pageable);
     List<User> findByRoleId(Long roleId);
 

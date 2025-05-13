@@ -1,8 +1,8 @@
 package com.taild.simpleshopapp.services;
 
-import com.taild.simpleshopapp.dtos.UpdateUserDTO;
-import com.taild.simpleshopapp.dtos.UserDTO;
-import com.taild.simpleshopapp.dtos.UserLoginDTO;
+import com.taild.simpleshopapp.dtos.users.UpdateUserDTO;
+import com.taild.simpleshopapp.dtos.users.UserDTO;
+import com.taild.simpleshopapp.dtos.users.UserLoginDTO;
 import com.taild.simpleshopapp.exceptions.DataNotFoundException;
 import com.taild.simpleshopapp.exceptions.InvalidPasswordException;
 import com.taild.simpleshopapp.models.User;

@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.dtos;
+package com.taild.simpleshopapp.dtos.users;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
