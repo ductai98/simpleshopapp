@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.dtos.orders;
+package com.taild.simpleshopapp.dtos.orderdetails;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.taild.simpleshopapp.models.OrderDetail;

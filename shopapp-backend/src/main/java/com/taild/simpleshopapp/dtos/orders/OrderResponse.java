@@ -1,6 +1,7 @@
 package com.taild.simpleshopapp.dtos.orders;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.taild.simpleshopapp.dtos.orderdetails.OrderDetailResponse;
 import com.taild.simpleshopapp.models.Order;
 import com.taild.simpleshopapp.models.OrderDetail;
 import lombok.*;

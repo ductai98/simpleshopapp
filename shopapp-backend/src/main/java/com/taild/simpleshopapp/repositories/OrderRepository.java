@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
     //Tìm các đơn hàng của 1 user nào đó
@@ -20,8 +19,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "OR o.email LIKE %:keyword%) " +
             "ORDER BY o.orderDate DESC")
     Page<Order> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
-    // Thêm phương thức tìm theo vnpTxnRef
-    Optional<Order> findByVnpTxnRef(String vnpTxnRef);
 }
 /*
 INSERT INTO orders (user_id, fullname, email, phone_number, address, note, status, total_money)

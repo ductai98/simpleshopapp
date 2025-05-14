@@ -1,6 +1,14 @@
-package com.taild.simpleshopapp.controller;
+package com.taild.simpleshopapp.controllers;
 
 
+import com.taild.simpleshopapp.component.SecurityUtils;
+import com.taild.simpleshopapp.dtos.ResponseDTO;
+import com.taild.simpleshopapp.dtos.orders.OrderDTO;
+import com.taild.simpleshopapp.dtos.orders.OrderResponse;
+import com.taild.simpleshopapp.enums.OrderStatus;
+import com.taild.simpleshopapp.models.Order;
+import com.taild.simpleshopapp.models.User;
+import com.taild.simpleshopapp.services.orders.IOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -8,7 +16,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -23,8 +30,7 @@ public class OrderController {
     private final SecurityUtils securityUtils;
 
     @PostMapping("")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
-    public ResponseEntity<ResponseObject> createOrder(
+    public ResponseEntity<ResponseDTO> createOrder(
             @Valid @RequestBody OrderDTO orderDTO,
             BindingResult result
     ) throws Exception {
@@ -34,7 +40,7 @@ public class OrderController {
                     .map(FieldError::getDefaultMessage)
                     .toList();
             return ResponseEntity.badRequest().body(
-                    ResponseObject.builder()
+                    ResponseDTO.builder()
                             .message(String.join(";", errorMessages))
                             .status(HttpStatus.BAD_REQUEST)
                             .build());
@@ -44,109 +50,92 @@ public class OrderController {
             orderDTO.setUserId(loginUser.getId());
         }
         Order orderResponse = orderService.createOrder(orderDTO);
-        return ResponseEntity.ok(ResponseObject.builder()
+        return ResponseEntity.ok(ResponseDTO.builder()
                         .message("Insert order successfully")
                         .data(orderResponse)
                         .status(HttpStatus.OK)
                         .build());
     }
-    @GetMapping("/user/{user_id}") // Thêm biến đường dẫn "user_id"
-    //GET http://localhost:8088/api/v1/orders/user/4
-    public ResponseEntity<ResponseObject> getOrders(@Valid @PathVariable("user_id") Long userId) {
+
+
+    @GetMapping("/user/{user_id}")
+    public ResponseEntity<ResponseDTO> getOrders(@Valid @PathVariable("user_id") Long userId) {
         User loginUser = securityUtils.getLoggedInUser();
         boolean isUserIdBlank = userId == null || userId <= 0;
         List<OrderResponse> orderResponses = orderService.findByUserId(isUserIdBlank ? loginUser.getId() : userId);
-        return ResponseEntity.ok(ResponseObject
+        return ResponseEntity.ok(ResponseDTO
                         .builder()
                         .message("Get list of orders successfully")
                         .data(orderResponses)
                         .status(HttpStatus.OK)
                         .build());
     }
-    //GET http://localhost:8088/api/v1/orders/2
+
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseObject> getOrder(@Valid @PathVariable("id") Long orderId) {
+    public ResponseEntity<ResponseDTO> getOrder(@Valid @PathVariable("id") Long orderId) {
         Order existingOrder = orderService.getOrderById(orderId);
         OrderResponse orderResponse = OrderResponse.fromOrder(existingOrder);
-        return ResponseEntity.ok(new ResponseObject(
+        return ResponseEntity.ok(new ResponseDTO(
                 "Get order successfully",
                     HttpStatus.OK,
                     orderResponse
                 ));
     }
+
+
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    //PUT http://localhost:8088/api/v1/orders/2
-    //công việc của admin
-    public ResponseEntity<ResponseObject> updateOrder(
+    public ResponseEntity<ResponseDTO> updateOrder(
             @Valid @PathVariable long id,
             @Valid @RequestBody OrderDTO orderDTO) throws Exception {
 
         Order order = orderService.updateOrder(id, orderDTO);
-        return ResponseEntity.ok(new ResponseObject("Update order successfully", HttpStatus.OK, order));
+        return ResponseEntity.ok(new ResponseDTO("Update order successfully", HttpStatus.OK, order));
     }
 
     @PutMapping("/cancel/{id}")
-    @PreAuthorize("hasRole('ROLE_USER')")
-    public ResponseEntity<ResponseObject> cancelOrder(
+    public ResponseEntity<ResponseDTO> cancelOrder(
             @Valid @PathVariable long id) throws Exception {
         Order order = orderService.getOrderById(id);
         // Kiểm tra xem người dùng hiện tại có phải là người đã đặt đơn hàng hay không
         User loginUser = securityUtils.getLoggedInUser();
         if (loginUser.getId() != order.getUser().getId()) {
-            return ResponseEntity.badRequest().body(ResponseObject.builder()
+            return ResponseEntity.badRequest().body(ResponseDTO.builder()
                     .status(HttpStatus.BAD_REQUEST)
                     .data(null)
                     .message("You do not have permission to cancel this order")
                     .build());
         }
-        if (order.getStatus().equals(OrderStatus.DELIVERED) ||
-                order.getStatus().equals(OrderStatus.SHIPPED) ||
-                order.getStatus().equals(OrderStatus.PROCESSING)) {
 
-            String message = "You cannot cancel an order with status: " + order.getStatus();
-            return ResponseEntity.badRequest().body(ResponseObject.builder()
-                    .status(HttpStatus.BAD_REQUEST)
-                    .data(null)
-                    .message(message)
-                    .build());
-        }
         OrderDTO orderDTO = OrderDTO.builder()
                 .userId(order.getUser().getId())
-                /*
-                .email(order.getEmail())
-                .note(order.getNote())
-                .address(order.getAddress())
-                .fullName(order.getFullName())
-                .totalMoney(order.getTotalMoney())
-                .couponCode(order.getCoupon().getCode())
-                */
                 .status(OrderStatus.CANCELLED)
                 .build();;
 
         order = orderService.updateOrder(id, orderDTO);
         return ResponseEntity.ok(
-                new ResponseObject(
+                new ResponseDTO(
                         "Cancel order successfully",
                         HttpStatus.OK,
                         order)
         );
     }
+
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ResponseObject> deleteOrder(@Valid @PathVariable Long id) {
+    public ResponseEntity<ResponseDTO> deleteOrder(@Valid @PathVariable Long id) {
         //xóa mềm => cập nhật trường active = false
         orderService.deleteOrder(id);
-        String message = localizationUtils.getLocalizedMessage(
-                MessageKeys.DELETE_ORDER_SUCCESSFULLY, id);
+        String message = "Xóa đơn hàng thành công";
         return ResponseEntity.ok(
-                ResponseObject.builder()
+                ResponseDTO.builder()
                         .message(message)
                         .build()
         );
     }
+
+
     @GetMapping("/get-orders-by-keyword")
-    public ResponseEntity<ResponseObject> getOrdersByKeyword(
+    public ResponseEntity<ResponseDTO> getOrdersByKeyword(
             @RequestParam(defaultValue = "", required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit
@@ -163,21 +152,22 @@ public class OrderController {
         // Lấy tổng số trang
         int totalPages = orderPage.getTotalPages();
         List<OrderResponse> orderResponses = orderPage.getContent();
-        return ResponseEntity.ok().body(ResponseObject.builder()
+        return ResponseEntity.ok().body(ResponseDTO.builder()
                 .message("Get orders successfully")
                 .status(HttpStatus.OK)
                 .data(orderResponses)
                 .build());
     }
+
+
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
-    public ResponseEntity<ResponseObject> updateOrderStatus(
+    public ResponseEntity<ResponseDTO> updateOrderStatus(
             @Valid @PathVariable Long id,
             @RequestParam String status) throws Exception {
         // Gọi service để cập nhật trạng thái
         Order updatedOrder = orderService.updateOrderStatus(id, status);
         // Trả về phản hồi thành công
-        return ResponseEntity.ok(ResponseObject.builder()
+        return ResponseEntity.ok(ResponseDTO.builder()
                 .message("Order status updated successfully")
                 .status(HttpStatus.OK)
                 .data(OrderResponse.fromOrder(updatedOrder))

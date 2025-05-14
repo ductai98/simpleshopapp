@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.controller;
+package com.taild.simpleshopapp.controllers;
 
 
 import com.taild.simpleshopapp.models.Category;

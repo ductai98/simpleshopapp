@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.controller;
+package com.taild.simpleshopapp.controllers;
 
 import com.taild.simpleshopapp.component.SecurityUtils;
 import com.taild.simpleshopapp.dtos.ResponseDTO;
@@ -12,7 +12,6 @@ import com.taild.simpleshopapp.services.ITokenService;
 import com.taild.simpleshopapp.services.IUserService;
 import com.taild.simpleshopapp.utils.FileUtils;
 import com.taild.simpleshopapp.utils.ValidationUtils;
-import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
