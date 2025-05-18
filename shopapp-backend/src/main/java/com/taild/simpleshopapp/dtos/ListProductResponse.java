@@ -1,5 +1,6 @@
 package com.taild.simpleshopapp.dtos;
 
+import com.taild.simpleshopapp.dtos.products.ProductResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,7 +12,7 @@ import java.util.List;
 @Data
 @Builder
 @NoArgsConstructor
-public class ProductListDTO {
-    private List<ProductDTO> products;
+public class ListProductResponse {
+    private List<ProductResponse> products;
     private int totalPages;
 }

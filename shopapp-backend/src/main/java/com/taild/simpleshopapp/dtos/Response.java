@@ -11,7 +11,7 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ResponseDTO {
+public class Response {
     @JsonProperty("message")
     private String message;
 

@@ -1,7 +1,7 @@
 package com.taild.simpleshopapp.controllers;
 
 import com.taild.simpleshopapp.component.SecurityUtils;
-import com.taild.simpleshopapp.dtos.ResponseDTO;
+import com.taild.simpleshopapp.dtos.Response;
 import com.taild.simpleshopapp.dtos.users.*;
 import com.taild.simpleshopapp.exceptions.DataNotFoundException;
 import com.taild.simpleshopapp.exceptions.InvalidPasswordException;
@@ -9,7 +9,7 @@ import com.taild.simpleshopapp.models.Token;
 import com.taild.simpleshopapp.models.User;
 import com.taild.simpleshopapp.services.IAuthService;
 import com.taild.simpleshopapp.services.ITokenService;
-import com.taild.simpleshopapp.services.IUserService;
+import com.taild.simpleshopapp.services.users.IUserService;
 import com.taild.simpleshopapp.utils.FileUtils;
 import com.taild.simpleshopapp.utils.ValidationUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,7 +47,7 @@ public class UserController {
     private String facebookClientSecret;
 
     @GetMapping("")
-    public ResponseEntity<ResponseDTO> getAllUser(
+    public ResponseEntity<Response> getAllUser(
             @RequestParam(defaultValue = "", required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit
@@ -67,7 +67,7 @@ public class UserController {
                 .users(userResponses)
                 .totalPages(totalPages)
                 .build();
-        return ResponseEntity.ok().body(ResponseDTO.builder()
+        return ResponseEntity.ok().body(Response.builder()
                         .message("Get user list successfully")
                         .status(HttpStatus.OK)
                         .data(userListResponse)
@@ -75,7 +75,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ResponseDTO> createUser(
+    public ResponseEntity<Response> createUser(
             @Valid @RequestBody UserDTO userDTO,
             BindingResult result
     ) throws Exception {
@@ -85,7 +85,7 @@ public class UserController {
                     .map(FieldError::getDefaultMessage)
                     .toList();
 
-            return ResponseEntity.badRequest().body(ResponseDTO.builder()
+            return ResponseEntity.badRequest().body(Response.builder()
                     .status(HttpStatus.BAD_REQUEST)
                     .data(null)
                     .message(errorMessages.toString())
@@ -93,7 +93,7 @@ public class UserController {
         }
         if (userDTO.getEmail() == null || userDTO.getEmail().trim().isBlank()) {
             if (userDTO.getPhoneNumber() == null || userDTO.getPhoneNumber().isBlank()) {
-                return ResponseEntity.badRequest().body(ResponseDTO.builder()
+                return ResponseEntity.badRequest().body(Response.builder()
                         .status(HttpStatus.BAD_REQUEST)
                         .data(null)
                         .message("At least email or phone number is required")
@@ -112,7 +112,7 @@ public class UserController {
         }
 
         if (!userDTO.getPassword().equals(userDTO.getRetypePassword())) {
-            return ResponseEntity.badRequest().body(ResponseDTO.builder()
+            return ResponseEntity.badRequest().body(Response.builder()
                     .status(HttpStatus.BAD_REQUEST)
                     .data(null)
                     .message("Passwords do not match")
@@ -120,13 +120,13 @@ public class UserController {
         }
         try {
             User user = userService.createUser(userDTO);
-            return ResponseEntity.ok(ResponseDTO.builder()
+            return ResponseEntity.ok(Response.builder()
                     .status(HttpStatus.CREATED)
                     .data(UserResponseDTO.fromUser(user))
                     .message("Account registration successful")
                     .build());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ResponseDTO.builder()
+            return ResponseEntity.badRequest().body(Response.builder()
                     .status(HttpStatus.BAD_REQUEST)
                     .data(null)
                     .message(e.getMessage())
@@ -136,7 +136,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseDTO> login(
+    public ResponseEntity<Response> login(
             @Valid @RequestBody UserLoginDTO userLoginDTO,
             HttpServletRequest request
     ) throws Exception {
@@ -160,7 +160,7 @@ public class UserController {
                 .build();
 
         return ResponseEntity.ok().body(
-                ResponseDTO.builder()
+                Response.builder()
                         .message("Login successfully")
                         .data(loginResponse)
                         .status(HttpStatus.OK)
@@ -175,13 +175,13 @@ public class UserController {
     }
 
     @PostMapping("/details")
-    public ResponseEntity<ResponseDTO> getUserDetails(
+    public ResponseEntity<Response> getUserDetails(
             @RequestHeader("Authorization") String authorizationHeader
     ) throws Exception {
         String extractedToken = authorizationHeader.substring(7); // Loại bỏ "Bearer " từ chuỗi token
         User user = userService.getUserDetailsFromToken(extractedToken);
         return ResponseEntity.ok().body(
-                ResponseDTO.builder()
+                Response.builder()
                         .message("Get user's detail successfully")
                         .data(UserResponseDTO.fromUser(user))
                         .status(HttpStatus.OK)
@@ -190,7 +190,7 @@ public class UserController {
     }
 
     @PutMapping("/details/{userId}")
-    public ResponseEntity<ResponseDTO> updateUserDetails(
+    public ResponseEntity<Response> updateUserDetails(
             @PathVariable Long userId,
             @RequestBody UpdateUserDTO updatedUserDTO,
             @RequestHeader("Authorization") String authorizationHeader
@@ -203,7 +203,7 @@ public class UserController {
         }
         User updatedUser = userService.updateUser(userId, updatedUserDTO);
         return ResponseEntity.ok().body(
-                ResponseDTO.builder()
+                Response.builder()
                         .message("Update user detail successfully")
                         .data(UserResponseDTO.fromUser(updatedUser))
                         .status(HttpStatus.OK)
@@ -213,23 +213,23 @@ public class UserController {
 
 
     @PutMapping("/reset-password/{userId}")
-    public ResponseEntity<ResponseDTO> resetPassword(@Valid @PathVariable long userId){
+    public ResponseEntity<Response> resetPassword(@Valid @PathVariable long userId){
         try {
             String newPassword = UUID.randomUUID().toString().substring(0, 5); // Tạo mật khẩu mới
             userService.resetPassword(userId, newPassword);
-            return ResponseEntity.ok(ResponseDTO.builder()
+            return ResponseEntity.ok(Response.builder()
                             .message("Reset password successfully")
                             .data(newPassword)
                             .status(HttpStatus.OK)
                     .build());
         } catch (InvalidPasswordException e) {
-            return ResponseEntity.ok(ResponseDTO.builder()
+            return ResponseEntity.ok(Response.builder()
                     .message("Invalid password")
                     .data("")
                     .status(HttpStatus.BAD_REQUEST)
                     .build());
         } catch (DataNotFoundException e) {
-            return ResponseEntity.ok(ResponseDTO.builder()
+            return ResponseEntity.ok(Response.builder()
                     .message("User not found")
                     .data("")
                     .status(HttpStatus.BAD_REQUEST)
@@ -239,13 +239,13 @@ public class UserController {
 
 
     @PutMapping("/block/{userId}/{active}")
-    public ResponseEntity<ResponseDTO> blockOrEnable(
+    public ResponseEntity<Response> blockOrEnable(
             @Valid @PathVariable long userId,
             @Valid @PathVariable int active
     ) throws Exception {
         userService.blockOrEnable(userId, active > 0);
         String message = active > 0 ? "Successfully enabled the user." : "Successfully blocked the user.";
-        return ResponseEntity.ok().body(ResponseDTO.builder()
+        return ResponseEntity.ok().body(Response.builder()
                 .message(message)
                 .status(HttpStatus.OK)
                 .data(null)
@@ -253,13 +253,13 @@ public class UserController {
     }
 
     @PostMapping(value = "/upload-profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDTO> uploadProfileImage(
+    public ResponseEntity<Response> uploadProfileImage(
             @RequestParam("file") MultipartFile file
     ) throws Exception {
         User loginUser = securityUtils.getLoggedInUser();
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body(
-                    ResponseDTO.builder()
+                    Response.builder()
                             .message("Image file is required.")
                             .build()
             );
@@ -267,7 +267,7 @@ public class UserController {
 
         if (file.getSize() > 10 * 1024 * 1024) { // 10MB
             return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                    .body(ResponseDTO.builder()
+                    .body(Response.builder()
                             .message("Image file size exceeds the allowed limit of 10MB.")
                             .status(HttpStatus.PAYLOAD_TOO_LARGE)
                             .build());
@@ -276,7 +276,7 @@ public class UserController {
         // Check file type
         if (!FileUtils.isImageFile(file)) {
             return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                    .body(ResponseDTO.builder()
+                    .body(Response.builder()
                             .message("Uploaded file must be an image.")
                             .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
                             .build());
@@ -292,7 +292,7 @@ public class UserController {
             FileUtils.deleteFile(oldFileName);
         }
 
-        return ResponseEntity.ok().body(ResponseDTO.builder()
+        return ResponseEntity.ok().body(Response.builder()
                 .message("Upload profile image successfully")
                 .status(HttpStatus.CREATED)
                 .data(imageName) // Return the filename or image URL

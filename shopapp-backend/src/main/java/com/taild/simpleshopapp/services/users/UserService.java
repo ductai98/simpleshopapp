@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.services;
+package com.taild.simpleshopapp.services.users;
 
 import com.taild.simpleshopapp.dtos.users.UpdateUserDTO;
 import com.taild.simpleshopapp.dtos.users.UserDTO;
@@ -31,7 +31,7 @@ import static com.taild.simpleshopapp.utils.ValidationUtils.isValidEmail;
 
 @RequiredArgsConstructor
 @Service
-public class UserService implements IUserService{
+public class UserService implements IUserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final TokenRepository tokenRepository;
@@ -70,6 +70,10 @@ public class UserService implements IUserService{
                 .build();
 
         newUser.setRole(role);
+
+        if (userDTO.getFacebookAccountId().isEmpty() && userDTO.getGoogleAccountId().isEmpty()) {
+
+        }
 
         return userRepository.save(newUser);
     }
@@ -174,9 +178,7 @@ public class UserService implements IUserService{
         userRepository.save(existingUser);
         //reset password => clear token
         List<Token> tokens = tokenRepository.findByUser(existingUser);
-        for (Token token : tokens) {
-            tokenRepository.delete(token);
-        }
+        tokenRepository.deleteAll(tokens);
     }
 
     @Override

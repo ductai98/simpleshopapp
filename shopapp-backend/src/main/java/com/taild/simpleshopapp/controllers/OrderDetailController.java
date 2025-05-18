@@ -1,6 +1,6 @@
 package com.taild.simpleshopapp.controllers;
 
-import com.taild.simpleshopapp.dtos.ResponseDTO;
+import com.taild.simpleshopapp.dtos.Response;
 import com.taild.simpleshopapp.dtos.orderdetails.OrderDetailDTO;
 import com.taild.simpleshopapp.dtos.orderdetails.OrderDetailResponse;
 import com.taild.simpleshopapp.exceptions.DataNotFoundException;
@@ -24,12 +24,12 @@ public class OrderDetailController {
 
 
     @PostMapping("")
-    public ResponseEntity<ResponseDTO> createOrderDetail(
+    public ResponseEntity<Response> createOrderDetail(
             @Valid @RequestBody OrderDetailDTO orderDetailDTO) throws Exception {
         OrderDetail newOrderDetail = orderDetailService.createOrderDetail(orderDetailDTO);
         OrderDetailResponse orderDetailResponse = OrderDetailResponse.fromOrderDetail(newOrderDetail);
         return ResponseEntity.ok().body(
-                ResponseDTO.builder()
+                Response.builder()
                         .message("Create order detail successfully")
                         .status(HttpStatus.CREATED)
                         .data(orderDetailResponse)
@@ -43,7 +43,7 @@ public class OrderDetailController {
         OrderDetail orderDetail = orderDetailService.getOrderDetail(id);
         OrderDetailResponse orderDetailResponse = OrderDetailResponse.fromOrderDetail(orderDetail);
         return ResponseEntity.ok().body(
-                ResponseDTO.builder()
+                Response.builder()
                         .message("Get order detail successfully")
                         .status(HttpStatus.OK)
                         .data(orderDetailResponse)
@@ -52,7 +52,7 @@ public class OrderDetailController {
     }
 
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<ResponseDTO> getOrderDetails(
+    public ResponseEntity<Response> getOrderDetails(
             @Valid @PathVariable("orderId") Long orderId
     ) {
         List<OrderDetail> orderDetails = orderDetailService.findByOrderId(orderId);
@@ -61,7 +61,7 @@ public class OrderDetailController {
                 .map(OrderDetailResponse::fromOrderDetail)
                 .toList();
         return ResponseEntity.ok().body(
-                ResponseDTO.builder()
+                Response.builder()
                         .message("Get order details by orderId successfully")
                         .status(HttpStatus.OK)
                         .data(orderDetailResponses)
@@ -71,11 +71,11 @@ public class OrderDetailController {
 
     @PutMapping("/{id}")
     @Operation(security = { @SecurityRequirement(name = "bearer-key") })
-    public ResponseEntity<ResponseDTO> updateOrderDetail(
+    public ResponseEntity<Response> updateOrderDetail(
             @Valid @PathVariable("id") Long id,
             @RequestBody OrderDetailDTO orderDetailDTO) throws DataNotFoundException, Exception {
         OrderDetail orderDetail = orderDetailService.updateOrderDetail(id, orderDetailDTO);
-        return ResponseEntity.ok().body(ResponseDTO
+        return ResponseEntity.ok().body(Response
                         .builder()
                         .data(orderDetail)
                         .message("Update order detail successfully")
@@ -84,11 +84,11 @@ public class OrderDetailController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseDTO> deleteOrderDetail(
+    public ResponseEntity<Response> deleteOrderDetail(
             @Valid @PathVariable("id") Long id) {
         orderDetailService.deleteById(id);
         return ResponseEntity.ok()
-                .body(ResponseDTO.builder()
+                .body(Response.builder()
                         .message("Delete order detail successfully")
                         .build());
     }

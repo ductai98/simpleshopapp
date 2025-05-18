@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.services;
+package com.taild.simpleshopapp.services.products;
 
 import com.taild.simpleshopapp.models.Product;
 import com.taild.simpleshopapp.dtos.ProductDTO;
@@ -12,8 +12,8 @@ import java.util.List;
 public interface IProductService {
     Product createProduct(ProductDTO productDTO) throws Exception;
     Product getProductById(long id) throws Exception;
-    Page<ProductDTO> getAllProducts(String keyword,
-                                                Long categoryId, PageRequest pageRequest);
+    Page<com.taild.simpleshopapp.dtos.products.ProductResponse> getAllProducts(String keyword,
+                                                                               Long categoryId, PageRequest pageRequest);
     Product updateProduct(long id, ProductDTO productDTO) throws Exception;
     void deleteProduct(long id);
     boolean existsByName(String name);
@@ -22,11 +22,4 @@ public interface IProductService {
             ProductImageDTO productImageDTO) throws Exception;
 
     List<Product> findProductsByIds(List<Long> productIds);
-    //String storeFile(MultipartFile file) throws IOException; //chuyển sang FileUtils
-    //void deleteFile(String filename) throws IOException;
-
-    Product likeProduct(Long userId, Long productId) throws Exception;
-    Product unlikeProduct(Long userId, Long productId) throws Exception;
-    List<ProductDTO> findFavoriteProductsByUserId(Long userId) throws Exception;
-    void generateFakeLikes() throws Exception;
 }

@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.services;
+package com.taild.simpleshopapp.services.users;
 
 import com.taild.simpleshopapp.dtos.users.UpdateUserDTO;
 import com.taild.simpleshopapp.dtos.users.UserDTO;

@@ -1,4 +1,4 @@
-package com.taild.simpleshopapp.services;
+package com.taild.simpleshopapp.services.categories;
 
 import java.util.List;
 import com.taild.simpleshopapp.models.Category;
