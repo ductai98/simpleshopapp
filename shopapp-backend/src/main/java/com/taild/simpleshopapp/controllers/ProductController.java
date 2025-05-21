@@ -1,6 +1,7 @@
 package com.taild.simpleshopapp.controllers;
 
 
+import com.github.javafaker.Faker;
 import com.taild.simpleshopapp.dtos.ProductDTO;
 import com.taild.simpleshopapp.dtos.ListProductResponse;
 import com.taild.simpleshopapp.dtos.ProductImageDTO;
@@ -206,5 +207,35 @@ public class ProductController {
                 .status(HttpStatus.OK)
                 .build()
         );
+    }
+
+
+    @PostMapping("/generateFakeProducts")
+    public ResponseEntity<Response> generateFakeProducts(
+            @RequestParam(defaultValue = "1000") int numberOfProducts
+    ) throws Exception {
+        Faker faker = new Faker();
+
+        for (int i = 0; i < numberOfProducts; i++) {
+            String productName = faker.commerce().productName();
+            if(productService.existsByName(productName)) {
+                continue;
+            }
+            ProductDTO productDTO = ProductDTO.builder()
+                    .name(productName)
+                    .price((float)faker.number().numberBetween(10, 90_000_000))
+                    .description(faker.lorem().sentence())
+                    .thumbnail("")
+                    .quantity(faker.number().numberBetween(1, 40))
+                    .categoryId((long)faker.number().numberBetween(7, 9))
+                    .build();
+            productService.createProduct(productDTO);
+        }
+
+        return ResponseEntity.ok(Response.builder()
+                .message("Insert fake products succcessfully")
+                .data(null)
+                .status(HttpStatus.OK)
+                .build());
     }
 }

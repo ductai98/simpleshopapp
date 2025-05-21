@@ -24,6 +24,9 @@ public class ProductDTO {
     @Max(value = 100000000, message = "Price must be less than or equal to 100,000,000")
     private Float price;
 
+    @NotBlank(message = "Quantity is required")
+    private int quantity;
+
     private String thumbnail;
 
     private String description;

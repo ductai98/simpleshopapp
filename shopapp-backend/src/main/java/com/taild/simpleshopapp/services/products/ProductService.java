@@ -2,6 +2,7 @@ package com.taild.simpleshopapp.services.products;
 
 import com.taild.simpleshopapp.dtos.ProductDTO;
 import com.taild.simpleshopapp.dtos.ProductImageDTO;
+import com.taild.simpleshopapp.dtos.products.ProductResponse;
 import com.taild.simpleshopapp.exceptions.DataNotFoundException;
 import com.taild.simpleshopapp.exceptions.InvalidParamException;
 import com.taild.simpleshopapp.models.Category;
@@ -37,6 +38,7 @@ public class ProductService implements IProductService {
         Product newProduct = Product.builder()
                 .name(productDTO.getName())
                 .price(productDTO.getPrice())
+                .quantity(productDTO.getQuantity())
                 .thumbnail(productDTO.getThumbnail())
                 .description(productDTO.getDescription())
                 .category(existingCategory)
@@ -54,10 +56,10 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public Page<com.taild.simpleshopapp.dtos.products.ProductResponse> getAllProducts(String keyword, Long categoryId, PageRequest pageRequest) {
+    public Page<ProductResponse> getAllProducts(String keyword, Long categoryId, PageRequest pageRequest) {
         Page<Product> productsPage;
         productsPage = productRepository.searchProducts(categoryId, keyword, pageRequest);
-        return productsPage.map(com.taild.simpleshopapp.dtos.products.ProductResponse::fromProduct);
+        return productsPage.map(ProductResponse::fromProduct);
     }
 
     @Override
