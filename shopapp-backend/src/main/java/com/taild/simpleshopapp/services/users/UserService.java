@@ -73,10 +73,13 @@ public class UserService implements IUserService {
 
         newUser.setRole(role);
 
-        if (userDTO.getFacebookAccountId().isEmpty() && userDTO.getGoogleAccountId().isEmpty()) {
+        String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
+        newUser.setPassword(encodedPassword);
+
+        /*if (userDTO.getFacebookAccountId().isEmpty() && userDTO.getGoogleAccountId().isEmpty()) {
             String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
             newUser.setPassword(encodedPassword);
-        }
+        }*/
 
         return userRepository.save(newUser);
     }
@@ -108,14 +111,18 @@ public class UserService implements IUserService {
             throw new DataNotFoundException("Tài khoản đã bị khóa");
         }
 
-        if (userLoginDTO.getFacebookAccountId().isEmpty() && userLoginDTO.getGoogleAccountId().isEmpty()) {
+        if (!passwordEncoder.matches(userLoginDTO.getPassword(), existingUser.getPassword())) {
+            throw new BadCredentialsException("Phone number or email is incorrect");
+        }
+
+        /*if (userLoginDTO.getFacebookAccountId().isEmpty() && userLoginDTO.getGoogleAccountId().isEmpty()) {
             if (!passwordEncoder.matches(userLoginDTO.getPassword(), existingUser.getPassword())) {
                 throw new BadCredentialsException("Phone number or email is incorrect");
             }
-        }
+        }*/
 
         String phoneNumber = existingUser.getPhoneNumber();
-        String password = existingUser.getPassword();
+        String password = userLoginDTO.getPassword();
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(phoneNumber, password);
         authenticationManager.authenticate(authenticationToken);
 

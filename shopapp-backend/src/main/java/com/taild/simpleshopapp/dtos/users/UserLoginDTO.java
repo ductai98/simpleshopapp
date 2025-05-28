@@ -23,7 +23,7 @@ public class UserLoginDTO {
     @NotBlank(message = "Password cannot be blank")
     private String password;
 
-    @JsonProperty("role_id")
+    /*@JsonProperty("role_id")
     private Long roleId;
 
     // Facebook Account Id, not mandatory, can be blank
@@ -54,5 +54,5 @@ public class UserLoginDTO {
     // Kiểm tra googleAccountId có hợp lệ không
     public boolean isGoogleAccountIdValid() {
         return googleAccountId != null && !googleAccountId.isEmpty();
-    }
+    }*/
 }

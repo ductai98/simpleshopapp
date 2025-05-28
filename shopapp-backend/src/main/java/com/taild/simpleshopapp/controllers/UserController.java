@@ -140,32 +140,42 @@ public class UserController {
             @Valid @RequestBody UserLoginDTO userLoginDTO,
             HttpServletRequest request
     ) throws Exception {
-        // Gọi hàm login từ UserService cho đăng nhập truyền thống
-        String token = userService.login(userLoginDTO);
+        try {
+            // Gọi hàm login từ UserService cho đăng nhập truyền thống
+            String token = userService.login(userLoginDTO);
 
-        // Xử lý token và thông tin người dùng
-        String userAgent = request.getHeader("User-Agent");
-        User userDetail = userService.getUserDetailsFromToken(token);
-        Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));
+            // Xử lý token và thông tin người dùng
+            String userAgent = request.getHeader("User-Agent");
+            User userDetail = userService.getUserDetailsFromToken(token);
+            Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));
 
-        // Tạo đối tượng LoginResponse
-        LoginResponseDTO loginResponse = LoginResponseDTO.builder()
-                .message("Login successfully")
-                .token(jwtToken.getToken())
-                .tokenType(jwtToken.getTokenType())
-                .refreshToken(jwtToken.getRefreshToken())
-                .username(userDetail.getUsername())
-                .roles(userDetail.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
-                .id(userDetail.getId())
-                .build();
+            // Tạo đối tượng LoginResponse
+            LoginResponseDTO loginResponse = LoginResponseDTO.builder()
+                    .message("Login successfully")
+                    .token(jwtToken.getToken())
+                    .tokenType(jwtToken.getTokenType())
+                    .refreshToken(jwtToken.getRefreshToken())
+                    .username(userDetail.getUsername())
+                    .roles(userDetail.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                    .id(userDetail.getId())
+                    .build();
 
-        return ResponseEntity.ok().body(
-                Response.builder()
-                        .message("Login successfully")
-                        .data(loginResponse)
-                        .status(HttpStatus.OK)
-                        .build()
-        );
+            return ResponseEntity.ok().body(
+                    Response.builder()
+                            .message("Login successfully")
+                            .data(loginResponse)
+                            .status(HttpStatus.OK)
+                            .build()
+            );
+        } catch (Exception e) {
+            ResponseEntity<Response> response = ResponseEntity.badRequest().body(
+                    Response.builder()
+                            .message(e.getMessage())
+                            .data(null)
+                            .status(HttpStatus.BAD_REQUEST)
+                            .build());
+            return response;
+        }
     }
 
     private boolean isMobileDevice(String userAgent) {

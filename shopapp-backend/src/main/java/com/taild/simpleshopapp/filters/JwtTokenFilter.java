@@ -41,10 +41,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             }
             final String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                response.sendError(
-                        HttpServletResponse.SC_UNAUTHORIZED,
-                        "authHeader null or not started with Bearer");
-                return;
+                throw new Exception("authHeader null or not started with Bearer");
             }
             final String token = authHeader.substring(7);
             final String phoneNumber = jwtTokenUtil.getSubject(token);
@@ -64,7 +61,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
              }
             filterChain.doFilter(request, response); //enable bypass
         }catch (Exception e) {
-            //response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write(e.getMessage());
         }
@@ -75,14 +71,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 // Healthcheck request, no JWT token required
                 Pair.of(String.format("%s/healthcheck/health", apiPrefix), "GET"),
                 Pair.of(String.format("%s/actuator/**", apiPrefix), "GET"),
-
-                Pair.of(String.format("%s/roles**", apiPrefix), "GET"),
-                Pair.of(String.format("%s/policies**", apiPrefix), "GET"),
-                Pair.of(String.format("%s/comments**", apiPrefix), "GET"),
-                Pair.of(String.format("%s/coupons**", apiPrefix), "GET"),
-
-                Pair.of(String.format("%s/products**", apiPrefix), "GET"),
-                Pair.of(String.format("%s/categories**", apiPrefix), "GET"),
 
                 Pair.of(String.format("%s/users/register", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/login", apiPrefix), "POST"),
@@ -103,10 +91,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
                 //Đăng nhập social
                 Pair.of(String.format("%s/users/auth/social-login**", apiPrefix), "GET"),
-                Pair.of(String.format("%s/users/auth/social/callback**", apiPrefix), "GET"),
-
-                Pair.of(String.format("%s/payments**", apiPrefix), "GET"),
-                Pair.of(String.format("%s/payments**", apiPrefix), "POST")
+                Pair.of(String.format("%s/users/auth/social/callback**", apiPrefix), "GET")
 
         );
 
