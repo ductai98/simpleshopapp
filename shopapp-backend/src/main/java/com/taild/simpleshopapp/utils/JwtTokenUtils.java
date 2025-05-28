@@ -1,9 +1,10 @@
 package com.taild.simpleshopapp.utils;
 
 import com.taild.simpleshopapp.exceptions.InvalidParamException;
+import com.taild.simpleshopapp.models.Token;
 import com.taild.simpleshopapp.models.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import com.taild.simpleshopapp.repositories.TokenRepository;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,8 @@ public class JwtTokenUtils {
 
     @Value("${jwt.secretKey}")
     private String secretKey;
+
+    private final TokenRepository tokenRepository;
 
     public String generateToken(User user) throws Exception{
         Map<String, Object> claims = new HashMap<>();
@@ -85,6 +88,32 @@ public class JwtTokenUtils {
 
     public String getSubject(String token) {
         return  extractClaim(token, Claims::getSubject);
+    }
+
+    public boolean validateToken(String token, User userDetails) {
+        try {
+            String subject = extractClaim(token, Claims::getSubject);
+            //subject is phoneNumber or email
+            Token existingToken = tokenRepository.findByToken(token);
+            if(existingToken == null
+                    || existingToken.isRevoked()
+                    || !userDetails.isActive()
+            ) {
+                return false;
+            }
+            return (subject.equals(userDetails.getUsername()))
+                    && !isTokenExpired(token);
+        } catch (MalformedJwtException e) {
+            logger.error("Invalid JWT token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            logger.error("JWT token is expired: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            logger.error("JWT token is unsupported: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            logger.error("JWT claims string is empty: {}", e.getMessage());
+        }
+
+        return false;
     }
 
 }

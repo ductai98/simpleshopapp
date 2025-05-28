@@ -28,6 +28,7 @@ import java.util.Optional;
 public class SecurityConfig {
     private final UserRepository userRepository;
     private final WebClient userInfoClient;
+
     //user's detail object
     @Bean
     public UserDetailsService userDetailsService() {
@@ -48,10 +49,12 @@ public class SecurityConfig {
             throw new UsernameNotFoundException("User not found with subject: " + subject);
         };
     }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -59,25 +62,16 @@ public class SecurityConfig {
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
+
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config
     ) throws Exception {
         return config.getAuthenticationManager();
     }
+
     @Bean
     public OpaqueTokenIntrospector introspector() {
         return new GoogleOpaqueTokenIntrospector(userInfoClient);
-    }
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
-                );
-
-        return http.build();
     }
 }

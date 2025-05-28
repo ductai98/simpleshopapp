@@ -19,6 +19,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +51,7 @@ public class UserService implements IUserService {
         if (!userDTO.getEmail().isBlank() && userRepository.existsByEmail(userDTO.getEmail())) {
             throw new DataIntegrityViolationException("Email already exists");
         }
-        Role role =roleRepository.findById(userDTO.getRoleId())
+        Role role = roleRepository.findById(userDTO.getRoleId())
                 .orElseThrow(() -> new DataNotFoundException("Role not found"));
 
 
@@ -72,7 +74,8 @@ public class UserService implements IUserService {
         newUser.setRole(role);
 
         if (userDTO.getFacebookAccountId().isEmpty() && userDTO.getGoogleAccountId().isEmpty()) {
-
+            String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
+            newUser.setPassword(encodedPassword);
         }
 
         return userRepository.save(newUser);
@@ -104,6 +107,17 @@ public class UserService implements IUserService {
         if (!existingUser.isActive()) {
             throw new DataNotFoundException("Tài khoản đã bị khóa");
         }
+
+        if (userLoginDTO.getFacebookAccountId().isEmpty() && userLoginDTO.getGoogleAccountId().isEmpty()) {
+            if (!passwordEncoder.matches(userLoginDTO.getPassword(), existingUser.getPassword())) {
+                throw new BadCredentialsException("Phone number or email is incorrect");
+            }
+        }
+
+        String phoneNumber = existingUser.getPhoneNumber();
+        String password = existingUser.getPassword();
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(phoneNumber, password);
+        authenticationManager.authenticate(authenticationToken);
 
         // Tạo JWT token cho người dùng
         return jwtTokenUtil.generateToken(existingUser);
