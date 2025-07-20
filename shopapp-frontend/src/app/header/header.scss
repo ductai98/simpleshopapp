@@ -1,0 +1,17 @@
+.navbar {
+    background-color: transparent !important;
+}
+
+.navbar-nav .nav-item.active .nav-link {
+    font-weight: bold;
+    color: #ffc107;
+    /* Bootstrap's warning color for emphasis */
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 8px 15px;
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-item.active .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}

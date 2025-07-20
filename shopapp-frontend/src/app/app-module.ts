@@ -3,11 +3,17 @@ import { BrowserModule, provideClientHydration, withEventReplay } from '@angular
 
 import { App } from './app';
 import { Home } from './home/home';
+import { Header } from './header/header';
+import { Footer } from './footer/footer';
+import { Order } from './order/order';
 
 @NgModule({
   declarations: [
     App,
     Home,
+    Header,
+    Footer,
+    Order,
   ],
   imports: [
     BrowserModule
